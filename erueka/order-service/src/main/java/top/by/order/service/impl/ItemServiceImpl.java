@@ -126,6 +126,14 @@ public class ItemServiceImpl implements ItemService {
         String url = instance.getHost() + ":" + instance.getPort();
 
         // 在测试的时候需要启动多个 item-service
+        // Error：No instances available for 127.0.0.1
+        // 需要在item-service的application.properties中把自己的IP注册到eureka中
+        // 即：
+        // # 将自己的IP注册到eureka服务中
+        // eureka.instance.prefer-ip-address=true
+        // eureka.instance.ip-address=127.0.0.1
+        // # 指定实例id(在eureka的管理界面显示)
+        // eureka.instance.instance-id= ${spring.application.name}###${server.port}
         return this.restTemplate.getForObject("http://" + url + "/item/" + id, Item.class);
     }
 
