@@ -3,11 +3,15 @@ package top.by.order.service.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import top.by.order.entity.Item;
 import top.by.order.properties.OrderProperties;
 import top.by.order.service.ItemService;
+
+import java.util.List;
 
 @Service
 public class ItemServiceImpl implements ItemService {
@@ -16,6 +20,9 @@ public class ItemServiceImpl implements ItemService {
     // Spring框架对RESTful方式的http请求做了封装，来简化操作
     @Autowired
     private RestTemplate restTemplate;
+
+    @Autowired
+    DiscoveryClient discoveryClient;
 
     @Autowired
     OrderProperties orderProperties;
@@ -100,7 +107,26 @@ public class ItemServiceImpl implements ItemService {
 //        at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61) [tomcat-embed-core-9.0.17.jar:9.0.17]
 //        at java.lang.Thread.run(Thread.java:748) [na:1.8.0_201]
 
-        return item;
+        // --------------------------------------------->
+        // return item;
+        // <---------------------------------------------
+
+        // 添加了Ribbon负载均衡器的做法
+        // LoadBalancerInterceptor RibbonLoadBalancerClient (debugger)
+        // 在item-service的application.properties中定义过
+        String serviceId = "item-service";
+        List<ServiceInstance> instances = this.discoveryClient.getInstances(serviceId);
+        if (instances.isEmpty()) {
+            return null;
+        }
+
+        // 为了演示，获取第一个实例
+        ServiceInstance instance = instances.get(0);
+
+        String url = instance.getHost() + ":" + instance.getPort();
+
+        // 在测试的时候需要启动多个 item-service
+        return this.restTemplate.getForObject("http://" + url + "/item/" + id, Item.class);
     }
 
 }
